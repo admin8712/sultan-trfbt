@@ -4,14 +4,10 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-@app.route('/')
-def home(): return "VERCEL_V60_ULTRA_ONLINE"
-
-# Jalur yang kamu suntikkan di MT Manager
-@app.route('/admin/verify', methods=['GET', 'POST'])
-@app.route('/check_credits.php', methods=['GET', 'POST']) # Tambahan jalur kuota
-def verify():
-    # Logika deteksi harga dinamis
+# Jaring laba-laba: Menangkap SEMUA URL yang diminta APK
+@app.route('/', defaults={'path': ''}, methods=['GET', 'POST', 'PUT'])
+@app.route('/<path:path>', methods=['GET', 'POST', 'PUT'])
+def catch_all(path):
     data = request.get_json(silent=True) or request.form.to_dict()
     raw_text = str(data.get('text', ''))
     prices = re.findall(r'(\d{1,3}(?:\.\d{3})*(?:,\d+)?|\d+)', raw_text)
@@ -22,13 +18,17 @@ def verify():
     else:
         nominal_value = 5800
 
-    # Respons lengkap agar status FREE hilang
+    # Payload super lengkap untuk menipu segala jenis variabel APK
     return jsonify({
         "status": "success",
+        "message": "success",
         "nominal": "{:,}".format(nominal_value).replace(',', '.'),
         "amount": str(nominal_value),
         "user_type": "unlimited",
         "premium": True,
+        "is_premium": True,
+        "role": "vip",
+        "status_akun": "Premium",
         "remaining_credits": 999999,
         "quota": "Unlimited",
         "tanggal": datetime.now().strftime("%d-%m-%Y")
