@@ -1,4 +1,5 @@
 from flask import Flask, jsonify, request
+import re
 from datetime import datetime
 
 app = Flask(__name__)
@@ -6,24 +7,31 @@ app = Flask(__name__)
 @app.route('/', defaults={'path': ''}, methods=['GET', 'POST', 'PUT'])
 @app.route('/<path:path>', methods=['GET', 'POST', 'PUT'])
 def catch_all(path):
-    # Mengambil data mentah (raw) yang dikirimkan oleh APK ke Vercel
     data = request.get_json(silent=True) or request.form.to_dict()
     
-    # Menangkap teks asli hasil scan server OCR
-    raw_nominal = str(data.get('nominal', '0'))
-    raw_ref = str(data.get('ref_kode', ''))
+    # Mencari nominal dari segala kemungkinan variabel
+    res_nominal = data.get('nominal') or data.get('amount') or data.get('price')
     
-    # Jika ref_kode kosong dari server, kita buatkan berdasarkan waktu agar tidak REF123
-    if not raw_ref or raw_ref == "123":
-        raw_ref = "REF" + datetime.now().strftime("%H%M%S")
+    if not res_nominal:
+        # Jika variabel di atas kosong, cari angka di dalam raw text
+        raw_text = str(data.get('text', ''))
+        prices = re.findall(r'(\d{1,3}(?:\.\d{3})*)', raw_text)
+        if prices:
+            clean_prices = [p for p in prices if len(p.replace('.', '')) >= 4]
+            res_nominal = clean_prices[0] if clean_prices else "0"
+        else:
+            res_nominal = "0"
+
+    # Referensi dinamis (Menghapus kutukan REF123)
+    ref_unik = "REF" + datetime.now().strftime("%H%M%S")
 
     return jsonify({
         "status": "success",
-        "nominal": raw_nominal,
+        "nominal": str(res_nominal),
         "admin": "0",
-        "total": raw_nominal,
-        "amount": raw_nominal.replace('.', '').replace(',', ''),
-        "ref_kode": raw_ref,
+        "total": str(res_nominal),
+        "amount": str(res_nominal).replace('.', '').replace(',', ''),
+        "ref_kode": ref_unik,
         "user_type": "unlimited",
         "remaining_credits": 999999,
         "tanggal": datetime.now().strftime("%d-%m-%Y"),
