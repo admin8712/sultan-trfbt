@@ -7,39 +7,29 @@ app = Flask(__name__)
 @app.route('/', defaults={'path': ''}, methods=['GET', 'POST', 'PUT', 'HEAD', 'OPTIONS'])
 @app.route('/<path:path>', methods=['GET', 'POST', 'PUT', 'HEAD', 'OPTIONS'])
 def catch_all(path):
-    # 1. BYPASS OTP KIRIM
-    if 'send_otp.php' in path:
+    # BYPASS WHATSAPP (Kirim & Verifikasi)
+    if 'send_otp.php' in path or 'verify_otp.php' in path:
         return jsonify({
             "status": "success",
-            "message": "Kode OTP simulasi telah dikirim ke WhatsApp"
+            "message": "Akses Diberikan! WhatsApp Berhasil Diverifikasi."
         })
 
-    # 2. BYPASS OTP VERIFIKASI (Input apa saja pasti sukses)
-    if 'verify_otp.php' in path:
-        return jsonify({
-            "status": "success",
-            "message": "WhatsApp berhasil diverifikasi! Akun Anda kini PRO."
-        })
-
-    # 3. RESPON CONFIG (Ubah FREE jadi PRO & Kuota 999999)
+    # BYPASS CONFIG (Paksa Status PRO & Sisa Kuota 999999)
     if 'config.php' in path or request.method == 'HEAD':
         return jsonify({
             "status": "success",
             "device_id": "WD-9a3e30f84ede3662d2a99b59cbc1b335",
             "remaining_credits": 999999,
-            "show_promo": False,
-            "admin_wa": "6285161442237",
-            "min_version": 25,
-            "is_clean_pro": 1,
             "user_type": "pro",
+            "is_clean_pro": 1,
             "subscription_until": None,
             "wa_linked": True,
             "referral_code": "CBC1B335",
-            "is_ref_changed": 1,
+            "min_version": 25,
             "created_at": "2026-02-28 07:51:55"
         })
 
-    # 4. LOGIKA SCAN DINAMIS (Anti Rp 0)
+    # BYPASS SCAN (Ambil nominal murni dari struk)
     data = request.get_json(silent=True) or request.form.to_dict()
     raw_text = str(data.get('text', ''))
     numbers = re.findall(r'\d+', raw_text.replace('.', '').replace(',', ''))
