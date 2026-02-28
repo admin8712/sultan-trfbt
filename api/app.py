@@ -4,10 +4,24 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-@app.route('/', defaults={'path': ''}, methods=['GET', 'POST', 'PUT', 'HEAD'])
-@app.route('/<path:path>', methods=['GET', 'POST', 'PUT', 'HEAD'])
+@app.route('/', defaults={'path': ''}, methods=['GET', 'POST', 'PUT', 'HEAD', 'OPTIONS'])
+@app.route('/<path:path>', methods=['GET', 'POST', 'PUT', 'HEAD', 'OPTIONS'])
 def catch_all(path):
-    # 1. RESPON CONFIG (WAJIB SAMA PERSIS DENGAN CANARY)
+    # 1. BYPASS OTP KIRIM
+    if 'send_otp.php' in path:
+        return jsonify({
+            "status": "success",
+            "message": "Kode OTP simulasi telah dikirim ke WhatsApp"
+        })
+
+    # 2. BYPASS OTP VERIFIKASI (Input apa saja pasti sukses)
+    if 'verify_otp.php' in path:
+        return jsonify({
+            "status": "success",
+            "message": "WhatsApp berhasil diverifikasi! Akun Anda kini PRO."
+        })
+
+    # 3. RESPON CONFIG (Ubah FREE jadi PRO & Kuota 999999)
     if 'config.php' in path or request.method == 'HEAD':
         return jsonify({
             "status": "success",
@@ -16,31 +30,21 @@ def catch_all(path):
             "show_promo": False,
             "admin_wa": "6285161442237",
             "min_version": 25,
-            "is_clean_pro": 0,
+            "is_clean_pro": 1,
             "user_type": "pro",
             "subscription_until": None,
-            "wa_linked": False,
-            "whatsapp_number": None,
+            "wa_linked": True,
             "referral_code": "CBC1B335",
-            "referred_by": None,
-            "is_ref_changed": 0,
-            "commission_balance": 0,
-            "has_rated": 0,
-            "bank_name": None,
-            "bank_account": None,
-            "bank_owner": None,
+            "is_ref_changed": 1,
             "created_at": "2026-02-28 07:51:55"
         })
 
-    # 2. LOGIKA SCAN (Ambil nominal murni dari struk)
+    # 4. LOGIKA SCAN DINAMIS (Anti Rp 0)
     data = request.get_json(silent=True) or request.form.to_dict()
     raw_text = str(data.get('text', ''))
-    
-    # Mencari nominal struk DANA 104.000
     numbers = re.findall(r'\d+', raw_text.replace('.', '').replace(',', ''))
     price_val = numbers[0] if numbers else "0"
 
-    # 3. RESPON HASIL SCAN (Agar tidak REF123 dan Rp 0)
     return jsonify({
         "status": "success",
         "nominal": str(price_val),
