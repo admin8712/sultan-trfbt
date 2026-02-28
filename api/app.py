@@ -10,19 +10,25 @@ def catch_all(path):
     data = request.get_json(silent=True) or request.form.to_dict()
     raw_text = str(data.get('text', ''))
     
-    # Cari angka di teks. Jika gagal karena sinyal, gunakan 5800 sebagai backup
+    # 1. Mencari Angka Harga Asli dari Scan
     prices = re.findall(r'(\d{1,3}(?:\.\d{3})*(?:,\d+)?|\d+)', raw_text)
     if prices:
         clean_prices = [int(p.replace('.', '').replace(',', '')) for p in prices if len(p) > 2]
-        nominal_value = max(clean_prices) if clean_prices else 5800
+        final_nominal = max(clean_prices) if clean_prices else 0
     else:
-        nominal_value = 5800 
+        final_nominal = 0 
+
+    # 2. Membuat Kode Referensi Unik (Berdasarkan Jam-Menit-Detik)
+    # Contoh hasil: REF013522 (01:35:22)
+    ref_unik = "REF" + datetime.now().strftime("%H%M%S")
 
     return jsonify({
         "status": "success",
-        "nominal": "{:,}".format(nominal_value).replace(',', '.'),
-        "amount": str(nominal_value),
-        "ref_kode": "REF" + datetime.now().strftime("%H%M%S"),
+        "nominal": "{:,}".format(final_nominal).replace(',', '.'),
+        "admin": "0",
+        "total": "{:,}".format(final_nominal).replace(',', '.'),
+        "amount": str(final_nominal),
+        "ref_kode": ref_unik,
         "user_type": "unlimited",
         "remaining_credits": 999999,
         "tanggal": datetime.now().strftime("%d-%m-%Y"),
